@@ -1,3 +1,7 @@
+import qrcode
+from io import BytesIO
+from fastapi.responses import StreamingResponse
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 import sqlite3
@@ -130,3 +134,30 @@ def redirect_qr(code: str, request: Request):
         raise HTTPException(status_code=404, detail="QR not found")
 
     return RedirectResponse(url=row["redirect_url"], status_code=302)
+
+@app.get("/qr/{code}/image")
+def generate_qr(code: str):
+    qr_url = f"https://dynamicqr-s3mm.onrender.com/q/{code}"
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_Q,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(qr_url)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": f"inline; filename={code}.png"
+        }
+    )
