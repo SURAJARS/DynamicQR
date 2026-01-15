@@ -1,16 +1,19 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 import sqlite3
+import os
 
 app = FastAPI()
 
+DB_PATH = "/tmp/qr.db"
+
 def get_db():
-    conn = sqlite3.connect("qr.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
-    conn = sqlite3.connect("qr.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.execute("""
     CREATE TABLE IF NOT EXISTS qr_codes (
         code TEXT PRIMARY KEY,
