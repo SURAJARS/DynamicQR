@@ -217,68 +217,181 @@ def create_qr(
         }
     )
 
+
+
 @app.get("/admin", response_class=HTMLResponse)
 def admin_ui():
     return """
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Dynamic QR Admin</title>
+        <title>Dynamic QR – Admin</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <style>
             body {
-                font-family: Arial, sans-serif;
-                background: #f7f7f7;
-                padding: 40px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                background: linear-gradient(135deg, #f5f7fa, #e4e8ee);
+                padding: 30px;
             }
-            .box {
-                background: #fff;
-                padding: 20px;
-                max-width: 400px;
+            .container {
+                max-width: 900px;
                 margin: auto;
-                border-radius: 8px;
-                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 30px;
             }
-            input, button {
+            .card {
+                background: #fff;
+                padding: 25px;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            }
+            h1 {
+                margin-top: 0;
+                font-size: 26px;
+            }
+            h2 {
+                margin-top: 0;
+                font-size: 20px;
+            }
+            p {
+                color: #555;
+                line-height: 1.5;
+            }
+            label {
+                font-size: 14px;
+                margin-top: 12px;
+                display: block;
+            }
+            input {
                 width: 100%;
                 padding: 10px;
-                margin-top: 10px;
+                margin-top: 6px;
+                border-radius: 6px;
+                border: 1px solid #ccc;
+                font-size: 14px;
             }
             button {
-                background: black;
-                color: white;
-                border: none;
-                cursor: pointer;
-            }
-            img {
                 margin-top: 20px;
                 width: 100%;
+                padding: 12px;
+                font-size: 15px;
+                background: #111;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #000;
+            }
+            .tag {
+                display: inline-block;
+                background: #eef2ff;
+                color: #333;
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 12px;
+                margin-bottom: 10px;
+            }
+            ul {
+                padding-left: 18px;
+            }
+            li {
+                margin-bottom: 8px;
+            }
+            .footer-note {
+                font-size: 12px;
+                color: #777;
+                margin-top: 15px;
+            }
+            @media (max-width: 800px) {
+                .container {
+                    grid-template-columns: 1fr;
+                }
             }
         </style>
     </head>
     <body>
-        <div class="box">
-            <h2>Create Dynamic QR</h2>
 
-            <form method="get" action="/admin/create-qr">
-                <input type="hidden" name="token" value="secret123">
+        <div class="container">
 
-                <label>QR Code Name</label>
-                <input name="code" required>
+            <!-- LEFT: CREATE QR -->
+            <div class="card">
+                <span class="tag">Admin Panel</span>
+                <h1>Dynamic QR Generator</h1>
+                <p>
+                    Create a single QR code that redirects users
+                    based on their language — without reprinting.
+                </p>
 
-                <label>English Redirect URL</label>
-                <input name="en_url" required>
+                <form method="get" action="/admin/create-qr">
+                    <input type="hidden" name="token" value="secret123">
 
-                <label>Tamil Redirect URL (optional)</label>
-                <input name="ta_url">
+                    <label>QR Code Name</label>
+                    <input name="code" placeholder="e.g. shop-front" required>
 
-                <button type="submit">Create QR</button>
-            </form>
+                    <label>English Redirect URL</label>
+                    <input name="en_url" placeholder="https://example.com/en" required>
 
-            <p style="font-size:12px;color:#777;">
-                After clicking, QR image will open in new page.
-            </p>
+                    <label>Tamil Redirect URL (optional)</label>
+                    <input name="ta_url" placeholder="https://example.com/ta">
+
+                    <button type="submit">Create & Download QR</button>
+                </form>
+
+                <div class="footer-note">
+                    After clicking, the QR image will open in a new page.
+                </div>
+            </div>
+
+            <!-- RIGHT: HOW IT WORKS -->
+            <div class="card">
+                <span class="tag">How it works</span>
+                <h2>One QR. Multiple Destinations.</h2>
+
+                <p>
+                    This system separates the <b>QR image</b> from the
+                    <b>decision logic</b>.
+                </p>
+
+                <ul>
+                    <li>
+                        You generate <b>one QR code</b> and print it anywhere.
+                    </li>
+                    <li>
+                        The QR always points to our backend URL.
+                    </li>
+                    <li>
+                        When someone scans it:
+                        <ul>
+                            <li>📱 Tamil phone → Tamil page</li>
+                            <li>🌍 English phone → English page</li>
+                        </ul>
+                    </li>
+                    <li>
+                        You can change links anytime without changing the QR.
+                    </li>
+                </ul>
+
+                <p>
+                    No mobile app.  
+                    No frontend dependency.  
+                    Just reliable backend logic.
+                </p>
+
+                <p class="footer-note">
+                    Ideal for shops, events, menus, posters, and campaigns.
+                </p>
+            </div>
+
         </div>
+
     </body>
     </html>
     """
+
+    </html>
+    """
+
 
