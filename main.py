@@ -1,6 +1,7 @@
 import qrcode
 from io import BytesIO
 from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -215,4 +216,69 @@ def create_qr(
             "Content-Disposition": f"inline; filename={code}.png"
         }
     )
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_ui():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Dynamic QR Admin</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #f7f7f7;
+                padding: 40px;
+            }
+            .box {
+                background: #fff;
+                padding: 20px;
+                max-width: 400px;
+                margin: auto;
+                border-radius: 8px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+            input, button {
+                width: 100%;
+                padding: 10px;
+                margin-top: 10px;
+            }
+            button {
+                background: black;
+                color: white;
+                border: none;
+                cursor: pointer;
+            }
+            img {
+                margin-top: 20px;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="box">
+            <h2>Create Dynamic QR</h2>
+
+            <form method="get" action="/admin/create-qr">
+                <input type="hidden" name="token" value="secret123">
+
+                <label>QR Code Name</label>
+                <input name="code" required>
+
+                <label>English Redirect URL</label>
+                <input name="en_url" required>
+
+                <label>Tamil Redirect URL (optional)</label>
+                <input name="ta_url">
+
+                <button type="submit">Create QR</button>
+            </form>
+
+            <p style="font-size:12px;color:#777;">
+                After clicking, QR image will open in new page.
+            </p>
+        </div>
+    </body>
+    </html>
+    """
 
