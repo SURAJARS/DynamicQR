@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 import sqlite3
-import os
 
 app = FastAPI()
 
+# =========================
+# Database config (Render-safe)
+# =========================
 DB_PATH = "/tmp/qr.db"
 
 def get_db():
@@ -14,6 +16,8 @@ def get_db():
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
+
+    # Main QR table (default redirect)
     conn.execute("""
     CREATE TABLE IF NOT EXISTS qr_codes (
         code TEXT PRIMARY KEY,
@@ -21,17 +25,47 @@ def init_db():
         is_active INTEGER DEFAULT 1
     )
     """)
+
+    # Language-specific redirects
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS language_redirects (
+        code TEXT,
+        language TEXT,
+        redirect_url TEXT,
+        PRIMARY KEY (code, language)
+    )
+    """)
+
     conn.commit()
     conn.close()
 
+# Initialize DB on startup
 init_db()
 
+# =========================
+# Utility: detect language
+# =========================
+def get_language(request: Request):
+    lang_header = request.headers.get("accept-language", "").lower()
+    if "ta" in lang_header:
+        return "ta"
+    return "en"
+
+# =========================
+# Health check
+# =========================
 @app.get("/")
 def root():
     return {"status": "ok"}
 
+# =========================
+# TEMP ADMIN: add test QR
+# =========================
 @app.get("/admin/add-test")
-def add_test():
+def add_test(token: str = ""):
+    if token != "secret123":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     conn = get_db()
     conn.execute(
         "INSERT OR REPLACE INTO qr_codes (code, redirect_url) VALUES (?, ?)",
@@ -39,15 +73,57 @@ def add_test():
     )
     conn.commit()
     conn.close()
+
     return {"status": "added"}
 
-@app.get("/q/{code}")
-def redirect_qr(code: str):
+# =========================
+# TEMP ADMIN: add language test
+# =========================
+@app.get("/admin/add-lang-test")
+def add_lang_test(token: str = ""):
+    if token != "secret123":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     conn = get_db()
+
+    # Default English redirect
+    conn.execute(
+        "INSERT OR REPLACE INTO qr_codes (code, redirect_url) VALUES (?, ?)",
+        ("langdemo", "https://example.com/en")
+    )
+
+    # Tamil redirect override
+    conn.execute(
+        "INSERT OR REPLACE INTO language_redirects (code, language, redirect_url) VALUES (?, ?, ?)",
+        ("langdemo", "ta", "https://example.com/ta")
+    )
+
+    conn.commit()
+    conn.close()
+
+    return {"status": "language rules added"}
+
+# =========================
+# CORE: QR redirect endpoint
+# =========================
+@app.get("/q/{code}")
+def redirect_qr(code: str, request: Request):
+    lang = get_language(request)
+    conn = get_db()
+
+    # 1️⃣ Try language-specific redirect
     row = conn.execute(
-        "SELECT redirect_url FROM qr_codes WHERE code=? AND is_active=1",
-        (code,)
+        "SELECT redirect_url FROM language_redirects WHERE code=? AND language=?",
+        (code, lang)
     ).fetchone()
+
+    # 2️⃣ Fallback to default redirect
+    if not row:
+        row = conn.execute(
+            "SELECT redirect_url FROM qr_codes WHERE code=? AND is_active=1",
+            (code,)
+        ).fetchone()
+
     conn.close()
 
     if not row:
