@@ -161,3 +161,58 @@ def generate_qr(code: str):
             "Content-Disposition": f"inline; filename={code}.png"
         }
     )
+@app.get("/admin/create-qr")
+def create_qr(
+    code: str,
+    en_url: str,
+    ta_url: str = "",
+    token: str = ""
+):
+    # simple protection
+    if token != "secret123":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    conn = get_db()
+
+    # Insert default (English)
+    conn.execute(
+        "INSERT OR REPLACE INTO qr_codes (code, redirect_url) VALUES (?, ?)",
+        (code, en_url)
+    )
+
+    # Insert Tamil override if provided
+    if ta_url:
+        conn.execute(
+            "INSERT OR REPLACE INTO language_redirects (code, language, redirect_url) VALUES (?, ?, ?)",
+            (code, "ta", ta_url)
+        )
+
+    conn.commit()
+    conn.close()
+
+    # Generate QR image (same logic as before)
+    qr_url = f"https://dynamicqr-s3mm.onrender.com/q/{code}"
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_Q,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(qr_url)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="image/png",
+        headers={
+            "Content-Disposition": f"inline; filename={code}.png"
+        }
+    )
+
